@@ -1,7 +1,8 @@
+*align: middle
 *background: #4c4a48
 *relief: flat
-*font: sans-serif 20
+*font: "Segoe UI" 15
 *foreground: white
 
 *Button*background: blue
-*Button*align: middle
+*Button*font: "Segoe UI" 16 bold
