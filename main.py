@@ -1,5 +1,7 @@
 from tkinter import *
 
+from PIL import ImageTk, Image
+
 APPDATA = {}
 
 
@@ -22,7 +24,7 @@ class TitanicTk(Tk):
 		self.frames = {}
 		
 		# Set the size of the window, and make it not resizable
-		self.geometry("430x640")
+		self.geometry("930x640")
 		self.resizable(0, 0)
 	
 	def loadFrame(self, frame):
@@ -51,6 +53,10 @@ class WelcomeFrame(Frame):
 		self.grid_rowconfigure(3, weight=5)
 		self.grid_rowconfigure(4, weight=2)
 		self.grid_columnconfigure(0, weight=1)
+		self.grid_columnconfigure(1, weight=1)
+		
+		self.bgImg = ImageTk.PhotoImage(Image.open("images/code_brain.png"))
+		Label(self, image=self.bgImg).grid(row=0, column=1, rowspan=5, sticky=NSEW)
 		
 		# Create a range of Labels (and a Frame as a separating block) as body content
 		Label(self, text="Welcome", font=("Segoe UI", 48, "bold"), anchor=CENTER).grid(row=0, column=0, sticky=NSEW)
@@ -64,7 +70,8 @@ class WelcomeFrame(Frame):
 		# Create a button that when pressed will start the model training and then load a PredictionsLoadFrame
 		Button(self, text="Train the Model",
 			   command=lambda: trainModel(APPDATA["WINDOW"].loadFrame(PredictionsLoadFrame))).grid(row=4, column=0,
-																								   sticky=NSEW)
+																								   sticky=NSEW,
+																								   padx=10, pady=10)
 	
 	def tkraise(self, aboveThis=None):
 		"""An overridden method to add window title change functionality to the standard method"""
@@ -86,6 +93,10 @@ class PredictionsLoadFrame(Frame):
 		self.grid_rowconfigure(3, weight=5)
 		self.grid_rowconfigure(4, weight=2)
 		self.grid_columnconfigure(0, weight=1)
+		self.grid_columnconfigure(1, weight=1)
+		
+		self.bgImg = ImageTk.PhotoImage(Image.open("images/code_brain.png"))
+		Label(self, image=self.bgImg).grid(row=0, column=1, rowspan=5, sticky=NSEW)
 		
 		# Create a range of Labels (and a Frame as a separating block) as body content
 		Label(self, text="Trained", font=("Segoe UI", 48, "bold"), anchor=CENTER).grid(row=0, column=0, sticky=NSEW)
@@ -95,11 +106,12 @@ class PredictionsLoadFrame(Frame):
 						 "button below to select the file containing the passenger data (making sure that it is in a " +
 						 "valid CSV Format)", anchor=CENTER, wraplength=340).grid(row=3, column=0, sticky=N + EW,
 																				  pady=(30, 0))
-		# Create a button that when pressed will make predictions and then load a PredictionsPreviewFrame
+		# Create a button that when pressed will make predictions and then load a PredictionViewFrame
 		Button(self, text="Make Predictions",
-			   command=lambda: makePredictions(APPDATA["WINDOW"].loadFrame(PredictionPreviewFrame))).grid(row=4,
-																										  column=0,
-																										  sticky=NSEW)
+			   command=lambda: makePredictions(APPDATA["WINDOW"].loadFrame(PredictionViewFrame))).grid(row=4,
+																									   column=0,
+																									   sticky=NSEW,
+																									   padx=10, pady=10)
 	
 	def tkraise(self, aboveThis=None):
 		"""An overridden method to add window title change functionality to the standard method"""
@@ -108,11 +120,11 @@ class PredictionsLoadFrame(Frame):
 		APPDATA["WINDOW"].title("Titanic Survivors Predictor - Make Predictions")
 
 
-class PredictionPreviewFrame(Frame):
-	"""A content container class for the Predictions Preview page"""
+class PredictionViewFrame(Frame):
+	"""A content container class for the Predictions View page"""
 	
 	def __init__(self, parent):
-		"""The constructor for the PredictionsPreviewFrame class"""
+		"""The constructor for the PredictionViewFrame class"""
 		# Initialise the object as a Frame and configure the layout manager
 		Frame.__init__(self, parent)
 		self.grid_rowconfigure(0, weight=4)
@@ -121,33 +133,32 @@ class PredictionPreviewFrame(Frame):
 		self.grid_rowconfigure(3, weight=5)
 		self.grid_rowconfigure(4, weight=2)
 		self.grid_columnconfigure(0, weight=1)
+		self.grid_columnconfigure(1, weight=1)
 		
 		# Create a range of Labels (and a Frame as a separating block) as body content
 		Label(self, text="Trained", font=("Segoe UI", 48, "bold"), anchor=CENTER).grid(row=0, column=0, sticky=NSEW)
 		Frame(self, bg="white", height=3).grid(row=1, column=0, sticky=EW, padx=40)
 		Label(self, text="Here are your predictions:", font=("Segoe UI", 22, "bold")).grid(row=2, column=0, sticky=NSEW)
+		
+		self.detailsFrame = Frame(self, bg="red", width=330)
+		self.detailsFrame.grid(row=0, column=1, rowspan=4, sticky=NSEW, ipadx=10, ipady=20)
+		
+		Button(self, text="Export Data").grid(row=4, column=0, sticky=NSEW, padx=10, pady=10)
+		Button(self, text="Make new Predictions",
+			   command=lambda: makePredictions(APPDATA["WINDOW"].loadFrame(PredictionsLoadFrame))).grid(row=4, column=1,
+																										sticky=NSEW,
+																										padx=10,
+																										pady=10)
+	
+	def populateDetails(self):
+		# TODO: Clear the table from self.detailsFrame and repopulate with header and content labels in a grid
+		pass
 	
 	def tkraise(self, aboveThis=None):
 		"""An overridden method to add window title change functionality to the standard method"""
 		# Raise this frame within it's container, then change the title of the MainWindow
 		Frame.tkraise(self, aboveThis)
 		APPDATA["WINDOW"].title("Titanic Survivors Predictor - Preview Predictions")
-
-
-class PredictionDetailsFrame(Frame):
-	"""A content container class for the Predictions Preview page"""
-	
-	def __init__(self, parent):
-		"""The constructor for the PredictionsPreviewFrame class"""
-		# Initialise the object as a Frame and configure the layout manager
-		Frame.__init__(self, parent)
-		self.grid_columnconfigure(0, weight=1)
-	
-	def tkraise(self, aboveThis=None):
-		"""An overridden method to add window title change functionality to the standard method"""
-		# Raise this frame within it's container, then change the title of the MainWindow
-		Frame.tkraise(self, aboveThis)
-		APPDATA["WINDOW"].title("Titanic Survivors Predictor - Prediction Details")
 
 
 def trainModel(callback=None, *args, **kwargs):
@@ -162,7 +173,17 @@ def trainModel(callback=None, *args, **kwargs):
 
 def makePredictions(callback=None, *args, **kwargs):
 	"""A function to run the data through the model and perform some passed in function"""
-	# Do model training code
+	# TODO: Do model training code
+	# Try to run the callback function that is passed in
+	try:
+		callback(*args, **kwargs)
+	except:
+		pass
+
+
+def exportData(callback=None, *args, **kwargs):
+	"""A function to export the currently stored prediction data"""
+	# TODO: Do exporting code
 	# Try to run the callback function that is passed in
 	try:
 		callback(*args, **kwargs)
