@@ -1,13 +1,15 @@
 # A library for making UIs in python (a tcl wrapper)
 from tkinter import *
 from tkinter import filedialog as fd, messagebox as mb
-from ScrollableFrame import ScrollableFrame
-
-# An image library to allow tkinter to use images easier
-from PIL import ImageTk, Image
 
 # A library used for managing data as if they were in tables
 import pandas as pd
+# An image library to allow tkinter to use images easier
+from PIL import ImageTk, Image
+# A series of imports used for machine learning
+from sklearn.ensemble import RandomForestClassifier
+
+from ScrollableFrame import ScrollableFrame
 
 # A variable defined at the top of the program to allow all classes and functions access to some shared data and variables
 APPDATA = {}
@@ -80,9 +82,9 @@ class WelcomeFrame(Frame):
 		
 		# Create a button that when pressed will start the model training and then load a PredictionsLoadFrame
 		Button(self, text="Train the Model",
-			   command=lambda: trainModel(APPDATA["WINDOW"].loadFrame, PredictionsLoadFrame)).grid(row=4, column=0,
-																								   sticky=NSEW,
-																								   padx=10, pady=10)
+			   command=lambda: APPDATA["WINDOW"].loadFrame(PredictionsLoadFrame)).grid(row=4, column=0,
+																					   sticky=NSEW,
+																					   padx=10, pady=10)
 	
 	def tkraise(self, aboveThis=None):
 		"""An overridden method to add window title change functionality to the standard method"""
@@ -178,7 +180,7 @@ class PredictionViewFrame(Frame):
 		# TODO: Clear the table from self.detailsFrame and repopulate with header and content labels in a grid
 		self.detailsFrame.body.children.clear()
 		from random import randint
-		data = [["H1", "H2"]]+[["D1", "D2"] for _ in range(randint(0, 50))]
+		data = [["H1", "H2"]] + [["D1", "D2"] for _ in range(randint(0, 50))]
 		for row in range(max([len(col) for col in data])):
 			self.detailsFrame.body.grid_columnconfigure(row, weight=1)
 		for i, row in enumerate(data):
@@ -190,19 +192,6 @@ class PredictionViewFrame(Frame):
 		# Raise this frame within it's container, then change the title of the MainWindow
 		Frame.tkraise(self, aboveThis)
 		APPDATA["WINDOW"].title("Titanic Survivors Predictor - Preview Predictions")
-
-
-def trainModel(callback=None, *args, **kwargs):
-	"""A function to train the model and perform some passed in function"""
-	try:
-		# TODO: Load ModelData and clean it up
-		try:
-			APPDATA["ModelData"] = cleanData(APPDATA["ModelData"])
-		except:
-			pass
-		callback(*args, **kwargs)
-	except TypeError:
-		pass
 
 
 def makePredictions(callback=None, *args, **kwargs):
@@ -218,9 +207,16 @@ def makePredictions(callback=None, *args, **kwargs):
 		
 		# If the user selected a file, then clean the data in the file up ready for the predictions
 		if APPDATA["predictionsFile"]:
-			# TODO: Load PredictionData, then clean it up
 			try:
-				APPDATA["PredictionData"] = cleanData(APPDATA["PredictionData"])
+				APPDATA["predictionData"] = cleanData(pd.read_csv(APPDATA["predictionsFile"]))
+				
+				y_train = APPDATA["trainData"]['Survived']
+				x_train = APPDATA["trainData"].drop('Survived', axis=1)
+				x_pred = APPDATA["predictionData"]
+				
+				rf = RandomForestClassifier()
+				rf.fit(x_train, y_train)
+				APPDATA["predictions"] = rf.predict(x_pred)
 			except:
 				print("There was an error in cleaning prediction data. This may cause issues later on")
 			callback(*args, **kwargs)
@@ -246,7 +242,7 @@ def exportData(callback=None, *args, **kwargs):
 		# If the user didn't cancel the dialog, then use pandas to put together the dataframe to export to CSV, and export it;
 		if export_file_name:
 			submission = pd.DataFrame(
-				{'PassengerId': APPDATA["PredictionData"]['PassengerId'], 'Survived': APPDATA["Predictions"]})
+				{'PassengerId': APPDATA["predictionData"]['PassengerId'], 'Survived': APPDATA["predictions"]})
 			submission.to_csv(export_file_name, index=False)
 		else:
 			# If the user cancelled the export dialog, then check to see if they want to try again.
@@ -276,11 +272,36 @@ def cleanData(data):
 	"""A function to take some data, clean it up (removing certain fields and filling gaps, then return it"""
 	
 	# TODO: Do the data cleaning necessary (as written by ML team)
+	# Remove the Cabin field from the data (as we found that there was too much data missing to be fillable
+	data.drop('Cabin', axis=1, inplace=True)
+	
+	# Impute the age of the passengers in the data set
+	data.loc[(data['Age'].isna()) & (data['Pclass'] == 1), 'Age'] = \
+		data.groupby('Pclass')['Age'].mean()[1]
+	data.loc[(data['Age'].isna()) & (data['Pclass'] == 2), 'Age'] = \
+		data.groupby('Pclass')['Age'].mean()[2]
+	data.loc[(data['Age'].isna()) & (data['Pclass'] == 3), 'Age'] = \
+		data.groupby('Pclass')['Age'].mean()[3]
+	
+	# Filling the missing fare values with the price that occurs most frequently
+	data['Fare'].fillna(data['Fare'].mode()[0], inplace=True)
+	
+	# Filling the missing values for Embarked with the most common port
+	data['Embarked'].fillna(data['Embarked'].mode()[0], inplace=True)
+	
+	# Feature Engineering
+	pd.get_dummies(data['Embarked'], drop_first=True).head()
+	sex = pd.get_dummies(data['Sex'], drop_first=True)
+	embark = pd.get_dummies(data['Embarked'], drop_first=True)
+	data.drop(['Name', 'Sex', 'Ticket', 'Embarked'], axis=1, inplace=True)
+	data = pd.concat([data, sex, embark], axis=1)
 	return data
 
 
 # If this file is being ran as a program and not imported
 if __name__ == '__main__':
+	# Set the trainData APPDATA variable to be the cleaned result of the training data
+	APPDATA["trainData"] = cleanData(pd.read_csv("train.csv"))
 	# Create a TitanicTk object, store it inside of the APPDATA dictionary and locally as app
 	app = APPDATA["WINDOW"] = TitanicTk()
 	# Load the welcome frame and then start the UI loop (so it doesn't terminate when all other foreground functions
