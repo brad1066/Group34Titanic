@@ -192,11 +192,14 @@ class PredictionViewFrame(Frame):
         # self.populateDetails()
 
     def updatePieChart(self):
-        self.pieChartFrame.children.clear()
+        self.pieChartFrame.grid_forget()
+        self.pieChartFrame = Frame(self)
+        self.pieChartFrame.grid(row=3, column=0, sticky=NSEW)
         pieLegends = ['Perished', 'Survived']
         pieVals = [len([_ for _ in APPDATA["predictions"] if _ == 0]), len(
             [_ for _ in APPDATA["predictions"] if _ == 1])]
         fig = Figure()  # create a figure object
+        fig.clear()
         fig.patch.set_facecolor("black")
         ax = fig.add_subplot(111)  # add an Axes to the figure
 
@@ -205,6 +208,7 @@ class PredictionViewFrame(Frame):
         fig.legend(title="Survivor predictions")
 
         chart1 = FigureCanvasTkAgg(fig, self.pieChartFrame)
+        chart1.get_tk_widget().children.clear()
         chart1.get_tk_widget().pack()
 
     def tkraise(self, aboveThis=None):
